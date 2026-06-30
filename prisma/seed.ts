@@ -1,6 +1,7 @@
 import { PrismaClient, Prisma } from '@/generated/prisma/client';
-
+import {UserCreateInput} from '@/generated/prisma/models';
 import { PrismaPg } from "@prisma/adapter-pg";
+import { faker } from '@faker-js/faker';
 import "dotenv/config";
 
 const adapter = new PrismaPg({
@@ -11,23 +12,30 @@ const prisma = new PrismaClient({
     adapter,
 });
 
-const userData: Prisma.UserCreateInput[] = [
-    {
-        name: "Alice",
-        email: "alice@prisma.io",
+export async function seedUsers(prisma: PrismaClient) {
+const inputs = Array.from({ length: 10 }).map(() => {
 
-    },
-    {
-        name: "Bob",
-        email: "bob@prisma.io",
+    return { 
+        name: faker.person.fullName(),
+        email:faker.internet.email(),
+        
+    }satisfies UserCreateInput;
 
-    },
-];
+}); 
+
+
+await prisma.$transaction(
+		inputs.map((input) => prisma.user.createMany({ data: input,skipDuplicates: true })),
+	);
+	return await prisma.user.findMany();
+}
+
+
+
 
 export async function main() {
-    for (const u of userData) {
-        await prisma.user.create({ data: u });
-    }
+    const users = await seedUsers(prisma);
+    
 }
 
 main();
